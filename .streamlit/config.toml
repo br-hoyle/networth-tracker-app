@@ -13,3 +13,11 @@ showSidebarBorder = true
 [theme.sidebar]
 backgroundColor = "#e8e7dd"
 secondaryBackgroundColor = "#ecebe3"
+
+[theme.ColorPalette]
+primaryColor = "#bb5a38"
+green = "#A8B79F"
+blue = "#6A7F8C"
+yellow = "#D1A15F"
+red = "#7A3B3A"
+backgroundColor = "#f4f3ed"

@@ -12,7 +12,6 @@ auth_pages = {
             "pages/income_and_expenses/income_and_expenses.py",
             title="Income & Expenses",
         ),
-        st.Page("pages/management/management.py", title="Account Management"),
     ],
 }
 
