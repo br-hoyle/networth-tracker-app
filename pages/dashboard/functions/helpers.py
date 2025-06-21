@@ -10,43 +10,6 @@ from utilities.helper import *
 from utilities.gsheets import *
 
 
-@st.dialog("Setting")
-def settings_assumptions():
-    with st.form("settings_assumptions"):
-        st.number_input(
-            "Inflation Rate",
-            value=0.03,
-            min_value=0.0,
-            max_value=0.05,
-            step=0.005,
-            key="inflation_rate",
-        )
-        st.number_input(
-            "Target Savings Rate",
-            value=0.15,
-            min_value=0.0,
-            max_value=0.25,
-            step=0.025,
-            key="target_savings_rate",
-        )
-        st.number_input(
-            "Target Return on Investment",
-            value=0.1,
-            min_value=0.0,
-            max_value=0.15,
-            step=0.01,
-        )
-        st.number_input(
-            "Retirement Age",
-            value=60,
-            min_value=0,
-            max_value=70,
-            step=1,
-            key="retirement_age",
-        )
-        st.form_submit_button("Save", use_container_width=True)
-
-
 def balances_spreadsheet(conn: GSheetsConnection):
 
     # Read Balances (convert to datetime, and round balance)

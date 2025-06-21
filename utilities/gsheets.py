@@ -2,11 +2,109 @@ import streamlit as st
 import pandas as pd
 from streamlit_gsheets import GSheetsConnection
 from datetime import date, datetime
+import pandas as pd
+import streamlit as st
+from typing import Any
+
+
+def load_worksheet(conn: GSheetsConnection, worksheet: str) -> pd.DataFrame:
+    return conn.read(worksheet=worksheet)
+
+
+def write_worksheet(conn: GSheetsConnection, worksheet: str, df: pd.DataFrame):
+    conn.update(worksheet=worksheet, data=df)
 
 
 def refresh_connection() -> GSheetsConnection:
     if st.button("Refresh Data", type="secondary", use_container_width=True):
         st.cache_data.clear()
+
+
+def load_settings_to_session_state(conn: GSheetsConnection):
+    df = load_worksheet(conn=conn, worksheet="settings")
+    df["value"] = df["value"].astype(str).str.strip()
+
+    def get_scalar(metric: str, cast_type: Any):
+        try:
+            raw_val = df.loc[df["metric"] == metric, "value"].iloc[0]
+            return cast_type(raw_val)
+        except (IndexError, ValueError, TypeError):
+            return None
+
+    settings = {
+        "inflation_rate": float,
+        "target_savings_rate": float,
+        "target_return_on_investment": float,
+        "target_retirement_age": int,
+        "replacement_income_rate": float,
+    }
+
+    for key, cast in settings.items():
+        if key not in st.session_state:
+            st.session_state[key] = get_scalar(key, cast)
+
+    if "birthdate" not in st.session_state:
+        try:
+            birth_val = df.loc[df["metric"] == "birthdate", "value"].iloc[0]
+            st.session_state["birthdate"] = pd.to_datetime(birth_val)
+        except (IndexError, ValueError, TypeError):
+            st.session_state["birthdate"] = None
+
+
+@st.dialog("Setting")
+def settings_assumptions(conn: GSheetsConnection):
+    df = load_worksheet(conn=conn, worksheet="settings")
+    df["value"] = df["value"].astype(str).str.strip()
+
+    # Exclude birthdate from settings inputs
+    editable_df = df[df["metric"] != "birthdate"].copy()
+
+    # Input widgets for all editable metrics
+    input_values = {}
+    with st.form("settings_assumptions_form"):
+        for _, row in editable_df.iterrows():
+            metric = row["metric"]
+            val = row["value"]
+
+            # Auto-cast known types for better UX
+            if metric in {
+                "inflation_rate",
+                "target_savings_rate",
+                "target_return_on_investment",
+                "replacement_income_rate",
+            }:
+                val = float(val)
+                input_values[metric] = st.number_input(
+                    label=metric.replace("_", " ").title(),
+                    value=val,
+                    step=0.01,
+                    min_value=0.0,
+                    key=metric,
+                )
+            elif metric == "target_retirement_age":
+                val = int(val)
+                input_values[metric] = st.number_input(
+                    label="Retirement Age",
+                    value=val,
+                    step=1,
+                    min_value=0,
+                    max_value=100,
+                    key=metric,
+                )
+            else:
+                input_values[metric] = st.text_input(
+                    label=metric.replace("_", " ").title(), value=val, key=metric
+                )
+
+        if st.form_submit_button("Save", use_container_width=True):
+            # Update the DataFrame with new values
+            for metric, new_value in input_values.items():
+                df.loc[df["metric"] == metric, "value"] = str(new_value)
+
+            # Re-write the full DataFrame including unchanged birthdate
+            conn.update(worksheet="settings", data=df)
+            st.success("Settings updated successfully!")
+            st.cache_data.clear()
 
 
 def read_sql(conn: GSheetsConnection, ddl: str) -> pd.DataFrame:
@@ -21,10 +119,6 @@ def read_sql(conn: GSheetsConnection, ddl: str) -> pd.DataFrame:
         return conn.query(sql)
 
 
-def load_worksheet(conn: GSheetsConnection, worksheet: str) -> pd.DataFrame:
-    return conn.read(worksheet=worksheet)
-
-
 def get_active_accounts(conn: GSheetsConnection) -> pd.DataFrame:
     """Fetches active accounts from the Google Sheet."""
     df = conn.read(worksheet="accounts")
@@ -37,7 +131,7 @@ def get_active_accounts(conn: GSheetsConnection) -> pd.DataFrame:
             pd.to_datetime(df["effective_end_date"], errors="coerce").fillna(
                 pd.to_datetime("2262-04-11")
             )
-            >= pd.to_datetime(date.today())
+            > pd.to_datetime(date.today())
         )
     ]
     return df
@@ -141,6 +235,7 @@ def add_balance_records(conn: GSheetsConnection):
         updated_records = pd.concat(
             [current_balance_records, new_records], ignore_index=True
         )
+        updated_records.drop(columns=["balance_type"], inplace=True)
 
         conn.update(worksheet="balances", data=updated_records)
 

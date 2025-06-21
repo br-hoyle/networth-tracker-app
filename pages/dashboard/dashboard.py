@@ -2,18 +2,29 @@ import streamlit as st
 from utilities.auth import *
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-import plotly.graph_objects as go
+import numpy as np
 from streamlit_extras.stylable_container import stylable_container
 
 from utilities.sidebar import show_app_sidebar
 from utilities.helper import *
 from utilities.gsheets import *
+from utilities.calculations import *
 
-from pages.dashboard.functions import balances_spreadsheet, settings_assumptions
+from pages.dashboard.functions.helpers import *
 
+from pages.dashboard.components.networth import networth_tile
+from pages.dashboard.components.target_networth import target_networth_tile
+from pages.dashboard.components.fire_networth import financial_independence_tile
+from pages.dashboard.components.investments_to_assets import investments_to_assets_tile
+
+# ----------------- HEADER ----------------- #
 st.set_page_config(layout="wide", page_title="Product Dashboard")
 
 view_type = show_app_sidebar()
+
+# Initialize Connection & Check for Staleness
+conn = st.connection("gsheets", type=GSheetsConnection)
+load_settings_to_session_state(conn=conn)
 
 header_cols = st.columns([7, 1, 1])
 with header_cols[0]:
@@ -26,164 +37,39 @@ with header_cols[2]:
     st.write("")
     st.write("")
     if st.button("☰ Settings", type="secondary", use_container_width=True):
-        settings_assumptions()
+        settings_assumptions(conn=conn)
 
-# Initialize Connection & Check for Staleness
-conn = st.connection("gsheets", type=GSheetsConnection)
 check_balance_staleness(conn)
 
+## ----------- BALANCES DASHBOARD ----------- ##
 if view_type == "Dashboard":
-    st.write("Dashboard")
 
+    row_one_columns = st.columns([4, 3, 3])
+
+    # NETWORTH OVER TIME
+    with row_one_columns[0]:
+        networth_tile(conn=conn)
+
+    # SUPPORTING NETWORTH MEASURES
+    with row_one_columns[1]:
+
+        ## TARGET NETWORTH
+        target_networth_tile(conn=conn)
+
+        ## INVESTMENTS TO ASSETS
+        investments_to_assets_tile(conn=conn)
+
+    with row_one_columns[2]:
+
+        ## FINANCIAL INDEPENDENCE TRACK
+        financial_independence_tile(conn=conn)
+
+
+## ---------- BALANCES SPREADSHEET ---------- ##
 elif view_type == "Spreadsheet":
 
     balances_spreadsheet(conn=conn)
 
-
-# with st.sidebar:
-
-#     # Control
-#     st.segmented_control(
-#         "**View**",
-#         options=["Dashboard", "Spreadsheet"],
-#         key="nav",
-#         selection_mode="single",
-#         default=["Dashboard"],
-#     )
-
-#     # Balances
-#     st.markdown("##### **Balances**")
-
-#     def add_balance_dialog():
-#         if st.button("**Add**", type="primary", use_container_width=True):
-#             st.write("Please log in to add balances.")
-
-#     add_balance_dialog()
-
-#     balance_cols = st.columns(2)
-#     with balance_cols[0]:
-
-#         def edit_balance_dialog():
-#             if st.button("Edit", type="secondary", use_container_width=True):
-#                 st.write("Please log in to add balances.")
-
-#         edit_balance_dialog()
-
-#     with balance_cols[1]:
-
-#         def remove_balance_dialog():
-#             if st.button("Remove", type="secondary", use_container_width=True):
-#                 st.write("Please log in to add balances.")
-
-#         remove_balance_dialog()
-
-
-#     if is_logged_in():
-#         logout_button(key="logout")
-#     else:
-#         open_login_page(key="login")
-
-#     st.write("---")
-
-
-# # Create a connection object
-# conn = st.connection("gsheets", type=GSheetsConnection)
-
-
-# # Function to load data from Google Sheets
-# @st.cache_data(ttl="10s")
-# def load_data():
-#     return conn.read(worksheet="balances")
-
-
-# # Refresh button
-# if st.button("🔄 Refresh Data"):
-#     st.cache_data.clear()
-
-# # Load and display the data
-# df = load_data()
-# df["full_date"] = pd.to_datetime(df["full_date"], errors="coerce").dt.normalize()
-# st.dataframe(df, use_container_width=True, hide_index=True)
-
-
-# networth_over_time = df.groupby("full_date")["balance"].sum().reset_index()
-
-# # Optional: Ensure full_date is a datetime object and sort
-# networth_over_time["full_date"] = pd.to_datetime(networth_over_time["full_date"])
-# networth_over_time = networth_over_time.sort_values("full_date")
-
-# # Step 2: Create a minimal Plotly chart
-# fig = go.Figure()
-
-# fig.add_trace(
-#     go.Scatter(
-#         x=networth_over_time["full_date"],
-#         y=networth_over_time["balance"],
-#         mode="lines+markers",
-#         name="Net Worth",
-#         line=dict(color="royalblue", width=2),
-#         marker=dict(size=4),
-#     )
-# )
-
-# # Step 3: Update layout for minimal style with necessary labels
-# fig.update_layout(
-#     title="Net Worth Over Time",
-#     xaxis_title="Date",
-#     yaxis_title="Net Worth ($)",
-#     template="simple_white",
-#     margin=dict(l=40, r=40, t=50, b=40),
-#     height=300,
-# )
-
-# # Display the chart
-# col1, col2, col3 = st.columns([6, 2, 2])
-# with col1:
-#     st.plotly_chart(fig, use_container_width=True)
-# with col2:
-#     with st.container(border=True):
-#         st.metric(
-#             label="Latest Balance",
-#             value=f"${networth_over_time['balance'].iloc[-1]:,.0f}",
-#             delta=(
-#                 f"{'-$' if networth_over_time['balance'].iloc[-1] - networth_over_time['balance'].iloc[-2] < 0 else '$'}"
-#                 f"{abs(networth_over_time['balance'].iloc[-1] - networth_over_time['balance'].iloc[-2]):,.2f}"
-#             ),
-#         )
-# with col3:
-#     with st.container(border=True):
-#         st.metric(
-#             label="Total Entries",
-#             value=f"{len(networth_over_time)}",
-#             delta=None,  # No delta for total entries
-#         )
-
-
-# st.dataframe(networth_over_time, use_container_width=True, hide_index=True)
-
-
-# latest = networth_over_time.iloc[networth_over_time["full_date"].idxmax()]
-# prev = (
-#     networth_over_time.iloc[networth_over_time["full_date"].idxmax() - 1]
-#     if len(networth_over_time) > 1
-#     else None
-# )
-
-# # Display the metric
-# st.metric(
-#     label=f"Net Worth as of {latest['full_date'].date()}",
-#     value=f"${latest['balance']:,.2f}",
-#     delta=(
-#         f"{'-$' if latest['balance'] - prev['balance'] < 0 else '$'}{abs((latest['balance'] - prev['balance'])):,.2f}"
-#         if prev is not None
-#         else None
-#     ),
-# )
-
-
-# import pandas as pd
-# import numpy as np
-# import streamlit as st
 
 # # Ensure correct formatting and sort
 # df["full_date"] = pd.to_datetime(df["full_date"])

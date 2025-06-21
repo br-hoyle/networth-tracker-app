@@ -16,8 +16,12 @@ secondaryBackgroundColor = "#ecebe3"
 
 [theme.ColorPalette]
 primaryColor = "#bb5a38"
+textColor = "#3d3a2a"
 green = "#A8B79F"
 blue = "#6A7F8C"
 yellow = "#D1A15F"
+orange = "#ffd6c4"
 red = "#7A3B3A"
 backgroundColor = "#f4f3ed"
+secondaryBackgroundColor = "#ecebe3"
+borderColor = "#d3d2ca"
