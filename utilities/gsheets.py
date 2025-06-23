@@ -235,7 +235,7 @@ def add_balance_records(conn: GSheetsConnection):
         updated_records = pd.concat(
             [current_balance_records, new_records], ignore_index=True
         )
-        updated_records.drop(columns=["balance_type"], inplace=True)
+        updated_records = updated_records[current_balance_records.columns]
 
         conn.update(worksheet="balances", data=updated_records)
 

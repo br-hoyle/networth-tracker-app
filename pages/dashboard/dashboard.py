@@ -1,9 +1,6 @@
 import streamlit as st
 from utilities.auth import *
 from streamlit_gsheets import GSheetsConnection
-import pandas as pd
-import numpy as np
-from streamlit_extras.stylable_container import stylable_container
 
 from utilities.sidebar import show_app_sidebar
 from utilities.helper import *
@@ -16,6 +13,7 @@ from pages.dashboard.components.networth import networth_tile
 from pages.dashboard.components.target_networth import target_networth_tile
 from pages.dashboard.components.fire_networth import financial_independence_tile
 from pages.dashboard.components.investments_to_assets import investments_to_assets_tile
+from pages.dashboard.components.retirement_margin import retirement_margin_tile
 
 # ----------------- HEADER ----------------- #
 st.set_page_config(layout="wide", page_title="Product Dashboard")
@@ -63,6 +61,9 @@ if view_type == "Dashboard":
 
         ## FINANCIAL INDEPENDENCE TRACK
         financial_independence_tile(conn=conn)
+
+        ## RETIREMENT MARGIN
+        retirement_margin_tile(conn=conn)
 
 
 ## ---------- BALANCES SPREADSHEET ---------- ##
