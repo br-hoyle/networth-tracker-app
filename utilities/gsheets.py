@@ -280,3 +280,73 @@ def delete_transaction_records(conn: GSheetsConnection):
         type="secondary",
         use_container_width=True,
     )
+
+
+def update_accounts(conn: GSheetsConnection):
+    """
+    Launch a Streamlit dialog to view and edit the 'accounts' worksheet.
+    Allows inline editing and saving back to Google Sheets.
+    """
+
+    @st.dialog("Account Management", width="large")
+    def accounts_editor():
+
+        # Load data from the 'accounts' worksheet
+        accounts_df = conn.read(worksheet="accounts")
+        accounts_df.set_index("account_id", inplace=True)
+
+        # Ensure DataFrame is not empty
+        if accounts_df.empty:
+            st.warning("The 'accounts' worksheet is empty. Add rows below.")
+            accounts_df = pd.DataFrame(
+                columns=["account_name", "type", "status"]
+            )  # Adjust columns as needed
+
+        # Show editable data editor
+        edited_df = st.data_editor(
+            accounts_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        # Save button: updates the worksheet
+        if st.button("Save"):
+            conn.update(worksheet="accounts", data=edited_df)
+            st.success("Accounts updated successfully.")
+
+    # Call the dialog
+    accounts_editor()
+
+
+def update_income(conn: GSheetsConnection):
+    """
+    Launch a Streamlit dialog to view and edit the 'income' worksheet.
+    Allows inline editing and saving back to Google Sheets.
+    """
+
+    @st.dialog("Income Management")
+    def income_editor():
+
+        # Load data from the 'income' worksheet
+        income_df = conn.read(worksheet="income")
+
+        # If sheet is empty, initialize with example structure
+        if income_df.empty:
+            st.warning("The 'income' worksheet is empty. Add rows below.")
+            income_df = pd.DataFrame(
+                columns=["income", "effective_start_date", "effective_end_date"]
+            )  # Customize as needed
+
+        # Show editable data editor
+        edited_df = st.data_editor(
+            income_df, num_rows="dynamic", use_container_width=True
+        )
+
+        # Save button
+        if st.button("Save"):
+            conn.update(worksheet="income", data=edited_df)
+            st.success("Income data updated successfully.")
+
+    # Open the dialog
+    income_editor()

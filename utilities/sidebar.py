@@ -53,7 +53,30 @@ def show_app_sidebar():
         with transaction_columns[1]:
             delete_transaction_records(conn=conn)
 
+        # Accounts / Income
+        st.markdown("##### Management")
+
+        accounts_col, income_col = st.columns(2)
+        with accounts_col:
+            if st.button(
+                type="primary",
+                use_container_width=True,
+                label="Accounts",
+                key="update_accounts_button_control",
+            ):
+                update_accounts(conn=conn)
+
+        with income_col:
+            if st.button(
+                type="primary",
+                use_container_width=True,
+                label="Income",
+                key="update_income_button_control",
+            ):
+                update_income(conn=conn)
+
         # Logout
+        st.write("---")
         logout_button(key="sidebar_logout")
 
         return view_type
