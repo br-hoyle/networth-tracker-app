@@ -207,7 +207,7 @@ def retirement_margin_tile(conn: GSheetsConnection):
         """,
     ):
 
-        retirement_margin = df.loc[df["full_date"].idxmax(), "retirment_margin__cv"]
+        retirement_margin = df.loc[df["full_date"].idxmax(), "retirement_margin__cv"]
 
         progress = (
             df.loc[df["full_date"].idxmax(), "retirement_egg__cv"]
