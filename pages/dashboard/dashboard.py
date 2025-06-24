@@ -14,6 +14,7 @@ from pages.dashboard.components.target_networth import target_networth_tile
 from pages.dashboard.components.fire_networth import financial_independence_tile
 from pages.dashboard.components.investments_to_assets import investments_to_assets_tile
 from pages.dashboard.components.retirement_margin import retirement_margin_tile
+from pages.dashboard.components.balance_by_group import balance_by_group_tile
 
 # ----------------- HEADER ----------------- #
 st.set_page_config(layout="wide", page_title="Product Dashboard")
@@ -65,153 +66,180 @@ if view_type == "Dashboard":
         ## RETIREMENT MARGIN
         retirement_margin_tile(conn=conn)
 
+    # BALANCE BY GROUP
+    balance_by_group_tile(conn=conn)
+
 
 ## ---------- BALANCES SPREADSHEET ---------- ##
 elif view_type == "Spreadsheet":
 
     balances_spreadsheet(conn=conn)
 
+import numpy as np
 
-# # Ensure correct formatting and sort
-# df["full_date"] = pd.to_datetime(df["full_date"])
-# df = df.sort_values("full_date")
+with stylable_container(
+    key="table_tile",
+    css_styles="""
+            {
+                background-color: #e3d8cc;
+                padding: 1rem 1rem 2rem 1rem;
+                border-radius: 0.5rem;
+                border-width: 0px;
+                border-style: solid;
+            }
+        """,
+):
+    # Load and preprocess
+    df = conn.read(worksheet="balances")
+    df["full_date"] = pd.to_datetime(df["full_date"])
+    df = df.sort_values("full_date")
 
-# # Select last 11 unique dates
-# last_n_dates = df["full_date"].drop_duplicates().sort_values().iloc[-6:]
-# df_filtered = df[df["full_date"].isin(last_n_dates)]
+    # Filter to last 6 unique dates
+    last_n_dates = df["full_date"].drop_duplicates().sort_values().iloc[-6:]
+    df_filtered = df[df["full_date"].isin(last_n_dates)]
 
-# # Pivot: institution balances by date
-# pivot_df = df_filtered.pivot_table(
-#     index=["category", "institution_name"],
-#     columns="full_date",
-#     values="balance",
-#     aggfunc="sum",
-# ).sort_index(axis=1)
+    # Pivot by category and institution
+    pivot_df = df_filtered.pivot_table(
+        index=["category", "institution_name"],
+        columns="full_date",
+        values="balance",
+        aggfunc="sum",
+    ).sort_index(axis=1)
 
-# # ✅ Rename columns: safely convert datetime columns to strings
-# pivot_df.columns = [
-#     col.strftime("%Y-%m-%d") if isinstance(col, pd.Timestamp) else col
-#     for col in pivot_df.columns
-# ]
+    # Format column names
+    pivot_df.columns = [
+        col.strftime("%Y-%m-%d") if isinstance(col, pd.Timestamp) else col
+        for col in pivot_df.columns
+    ]
 
-# # ✅ Identify balance columns (all except the last two for change columns)
-# balance_columns = (
-#     pivot_df.columns[:-2] if "Last Change" in pivot_df.columns else pivot_df.columns
-# )
+    # Determine balance columns
+    balance_columns = (
+        pivot_df.columns[:-2] if "Last Change" in pivot_df.columns else pivot_df.columns
+    )
 
-# # Compute changes
-# last_vals = pivot_df[balance_columns[-1]]
-# prev_vals = pivot_df[balance_columns[-2]]
-# change_1 = ((last_vals - prev_vals) / prev_vals.replace(0, np.nan)) * 100
-# change_10 = (
-#     (last_vals - pivot_df[balance_columns[0]])
-#     / pivot_df[balance_columns[0]].replace(0, np.nan)
-# ) * 100
+    # Compute percentage changes
+    last_vals = pivot_df[balance_columns[-1]]
+    prev_vals = pivot_df[balance_columns[-2]]
+    first_vals = pivot_df[balance_columns[0]]
 
-# # Add changes
-# pivot_df["Last Change"] = change_1
-# pivot_df["Change"] = change_10
+    change_1 = ((last_vals - prev_vals) / prev_vals.replace(0, np.nan)) * 100
+    change_10 = ((last_vals - first_vals) / first_vals.replace(0, np.nan)) * 100
 
-# # Recalculate balance_columns since two new columns were just added
-# balance_columns = [
-#     col for col in pivot_df.columns if col not in ["Last Change", "Change"]
-# ]
+    pivot_df["Last Change"] = change_1
+    pivot_df["Change"] = change_10
 
-# # Add Balance History list column
-# pivot_df["Balance History"] = pivot_df[balance_columns].values.tolist()
+    # Recompute balance columns (now that we added change columns)
+    balance_columns = [
+        col for col in pivot_df.columns if col not in ["Last Change", "Change"]
+    ]
 
-# # Reset index for display
-# final_df = pivot_df.reset_index()
+    # Add balance history
+    pivot_df["Balance History"] = pivot_df[balance_columns].values.tolist()
 
-# # ✅ Add Total rows by category
-# tables = {}
-# for category in final_df["category"].unique():
-#     df_cat = final_df[final_df["category"] == category].copy()
+    # Reset index for display
+    final_df = pivot_df.reset_index().fillna(0)
 
-#     # Calculate numeric totals
-#     numeric_data = (
-#         df_cat[balance_columns].replace("[\$,]", "", regex=True).astype(float)
-#     )
-#     total_numeric = numeric_data.sum()
-#     last = total_numeric.iloc[-1]
-#     prev = total_numeric.iloc[-2]
-#     first = total_numeric.iloc[0]
-#     delta_last = ((last - prev) / prev) * 100 if prev != 0 else 0
-#     delta_10 = ((last - first) / first) * 100 if first != 0 else 0
+    # Build summary tables by category
+    tables = {}
+    for category in final_df["category"].unique():
+        df_cat = final_df[final_df["category"] == category].copy()
 
-#     # Build total row
-#     total_row = {
-#         "category": "",  # remove category label from total
-#         "institution_name": "Total",
-#         "Last Change": delta_last,
-#         "Change": delta_10,
-#         "Balance History": total_numeric.tolist(),
-#     }
+        # Total row
+        numeric_data = df_cat[balance_columns].astype(float)
+        total_numeric = numeric_data.sum()
 
-#     for i, date_col in enumerate(balance_columns):
-#         total_row[date_col] = total_numeric.iloc[i]
+        last = total_numeric.iloc[-1]
+        prev = total_numeric.iloc[-2]
+        first = total_numeric.iloc[0]
 
-#     df_cat = pd.concat([df_cat, pd.DataFrame([total_row])], ignore_index=True)
-#     tables[category] = df_cat
+        delta_last = ((last - prev) / prev) * 100 if prev != 0 else 1
+        delta_10 = ((last - first) / first) * 100 if first != 0 else 1
 
-# # ✅ Display using Streamlit
-# for category, table in tables.items():
-#     st.subheader(category)
+        total_row = {
+            "category": "",
+            "institution_name": "Total",
+            "Last Change": delta_last,
+            "Change": delta_10,
+            "Balance History": total_numeric.tolist(),
+        }
 
-#     num_date_cols = [col for col in table.columns if col[:4].isdigit()]
+        for i, col in enumerate(balance_columns):
+            total_row[col] = total_numeric.iloc[i]
 
-#     # Define row-level color logic for the line chart
-#     line_colors = [
-#         "green" if row["Balance History"][0] < row["Balance History"][-1] else "red"
-#         for _, row in table.iterrows()
-#     ]
+        df_cat = pd.concat([df_cat, pd.DataFrame([total_row])], ignore_index=True)
+        tables[category] = df_cat
 
-#     def highlight_status(val):
-#         color = "#487631" if val >= 0 else "#933838"
-#         return f"color: {color}"
+    # Step 3: Before styling, add improvement flags to your table
 
-#     # Assuming you have a DataFrame named 'df' with a 'Status' column
-#     df_styled = table.fillna(0).style.applymap(
-#         highlight_status, subset=["Last Change", "Change"]
-#     )
+    for category, table in tables.items():
 
-#     st.dataframe(
-#         df_styled,
-#         column_order=["institution_name"]
-#         + balance_columns
-#         + [
-#             "Balance History",
-#             "Last Change",
-#             "Change",
-#         ],
-#         column_config={
-#             "institution_name": st.column_config.TextColumn(
-#                 "Institution", width="medium"
-#             ),
-#             "Balance History": st.column_config.LineChartColumn(
-#                 "Balance Trend",
-#                 y_min=0,
-#                 # line_color=line_colors,
-#             ),
-#             "Last Change": st.column_config.NumberColumn(
-#                 format="%.2f%%",
-#                 help="Change from previous date",
-#                 width="small",
-#             ),
-#             "Change": st.column_config.NumberColumn(
-#                 format="%.2f%%",
-#                 help="Change from 10 periods ago",
-#                 width="small",
-#             ),
-#             **{
-#                 col: st.column_config.NumberColumn(
-#                     format="dollar",
-#                     help=f"Balance on {col}",
-#                     width="small",
-#                 )
-#                 for col in num_date_cols
-#             },
-#         },
-#         hide_index=True,
-#         use_container_width=True,
-#     )
+        num_date_cols = [col for col in table.columns if col[:4].isdigit()]
+        first_date_col = num_date_cols[0]
+        prev_date_col = num_date_cols[-2]
+        last_date_col = num_date_cols[-1]
+
+        def highlight_change(row, col):
+            first = row[first_date_col]
+            prev = row[prev_date_col]
+            last = row[last_date_col]
+            val = row[col]
+
+            if pd.isna(val):
+                return ""
+
+            if col == "Last Change":
+                improved = last >= prev
+            else:
+                improved = last >= first
+
+            if improved:
+                return f"""background-color: {get_config_value('theme.ColorPalette.green')}; color: #2c6a3a"""  # light green
+            else:
+                return f"background-color: {get_config_value('theme.ColorPalette.red')}; color: #76333c"  # light red
+
+        def style_table(df):
+            style_df = pd.DataFrame("", index=df.index, columns=df.columns)
+            for i in df.index:
+                style_df.at[i, "Last Change"] = highlight_change(
+                    df.loc[i], "Last Change"
+                )
+                style_df.at[i, "Change"] = highlight_change(df.loc[i], "Change")
+            return style_df
+
+        df_styled = table.style.apply(style_table, axis=None)
+
+        st.markdown(f"##### {category}")
+
+        # Then style and display
+        df_styled = table.style.apply(style_table, axis=None)
+
+        st.dataframe(
+            df_styled,
+            column_order=["institution_name"]
+            + balance_columns
+            + ["Balance History", "Last Change", "Change"],
+            column_config={
+                "institution_name": st.column_config.TextColumn(
+                    "Institution", width="medium"
+                ),
+                "Balance History": st.column_config.LineChartColumn(
+                    "Balance Trend", y_min=0
+                ),
+                "Last Change": st.column_config.NumberColumn(
+                    format="%.2f%%", help="Change from previous date", width="small"
+                ),
+                "Change": st.column_config.NumberColumn(
+                    format="%.2f%%", help="Change from first date", width="small"
+                ),
+                **{
+                    col: st.column_config.NumberColumn(
+                        format="dollar",
+                        help=f"Balance on {col}",
+                        width="small",
+                    )
+                    for col in balance_columns
+                },
+            },
+            hide_index=True,
+            use_container_width=True,
+        )
