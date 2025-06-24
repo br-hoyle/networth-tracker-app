@@ -168,48 +168,26 @@ def balance_by_group_tile(conn: GSheetsConnection):
                 .reset_index()
             )
 
-            # Build labels, parents, values, and colors
-            labels = []
-            parents = []
-            values = []
-            colors = []
+            # Plot sunburst with only leaf nodes (no manual parent rows)
+            fig = px.sunburst(
+                sunburst_data,
+                path=["category", "account_group"],
+                values="total_balance",
+                color="category",
+                color_discrete_map=color_map,
+            )
 
-            # Add top-level categories with summed values
-            # Add top-level categories
-            for cat in sunburst_data["category"].unique():
-                labels.append(cat)
-                parents.append("")
-                values.append(
-                    sunburst_data[sunburst_data["category"] == cat][
-                        "total_balance"
-                    ].sum()
-                )
-                colors.append(color_map.get(cat, "#cccccc"))
-
-            # Then add children (account_group)
-            for _, row in sunburst_data.iterrows():
-                labels.append(row["account_group"])
-                parents.append(row["category"])
-                values.append(row["total_balance"])
-                colors.append(color_map.get(row["account_group"], "#cccccc"))
-
-            # Create figure
-            fig_sunburst = go.Figure(
-                go.Sunburst(
-                    labels=labels,
-                    parents=parents,
-                    values=values,
-                    branchvalues="remainder",
-                    marker=dict(colors=colors, line=dict(color="#ecebe3", width=0.5)),
-                    textinfo="label+value",
-                    hovertemplate="<b>Category:</b> %{parent}<br>"
-                    "<b>Account Group:</b> %{label}<br>"
-                    "<b>Balance:</b> $%{value:,.0f}<extra></extra>",
-                )
+            # Optional: text formatting tweaks
+            fig.update_traces(
+                textinfo="label+value",
+                marker=dict(line=dict(color="#ecebe3", width=0.5)),
+                hovertemplate="<b>Category:</b> %{root}<br>"
+                "<b>Label:</b> %{label}<br>"
+                "<b>Balance:</b> $%{value:,.0f}<extra></extra>",
             )
 
             # Apply layout
-            fig_sunburst.update_layout(
+            fig.update_layout(
                 height=350,
                 template="simple_white",
                 margin=dict(l=0, r=0, t=20, b=20),
@@ -218,4 +196,6 @@ def balance_by_group_tile(conn: GSheetsConnection):
                 title="",
             )
 
-            st.plotly_chart(fig_sunburst)
+            st.plotly_chart(
+                fig, use_container_width=True, config={"displayModeBar": False}
+            )
