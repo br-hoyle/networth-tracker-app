@@ -2,6 +2,8 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 from datetime import datetime
 import pandas as pd
+from pathlib import Path
+import toml
 
 
 @st.cache_data
@@ -38,6 +40,54 @@ def check_balance_staleness(conn: GSheetsConnection):
             f"⚠️ Balance **last updated {days_old} days ago** ({latest_date.strftime('%m/%d/%Y')})."
         )
     else:
-        st.toast(
-            f"✅ Balance data is up to date as of {latest_date.strftime('%m/%d/%Y')})."
+        st.success(
+            f"✅ Balance **last updated {days_old} days ago** ({latest_date.strftime('%m/%d/%Y')})."
         )
+
+
+def get_config_value(dot_path: str, config_path: str = ".streamlit/config.toml"):
+    """
+    Loads a TOML config file and retrieves a nested value based on a dot-separated path.
+
+    Parameters
+    - dot_path (str): Dot-separated string representing the key path (e.g., "theme.ColorPalette.green")
+    - config_path (str): Path to the TOML file (default is ".streamlit/config.toml")
+
+    Returns
+    - The retrieved value, or None if any key in the chain does not exist.
+    """
+    # Load the TOML config file
+    config_file = Path(config_path)
+    if not config_file.exists():
+        raise FileNotFoundError(f"Config file not found at: {config_path}")
+
+    config = toml.load(config_file)
+
+    # Traverse the config using chained .get()
+    keys = dot_path.split(".")
+    current = config
+    for key in keys:
+        current = current.get(key)
+        if current is None:
+            return None  # Key not found, exit early
+
+    return current
+
+
+def render_footer():
+    st.markdown(
+        """
+    <hr style="margin-top: 3rem;" />
+    <div style='text-align: center; padding: 1rem; color: gray; font-size: 1rem;'>
+        Built with 
+        <img src="https://image.pngaaa.com/798/5084798-middle.png" style="height: 1em; vertical-align: middle;" alt="Streamlit logo"> 
+        <a href="https://streamlit.io/" target="_blank" style="color: gray; text-decoration: none;">Streamlit</a>
+        and 
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Google_Sheets_logo_%282014-2020%29.svg" style="height: 1em; vertical-align: middle;" alt="Google Sheets logo">
+        Google Sheets
+        <br />
+        © 2025 Benjamin Hoyle
+    </div>
+            """,
+        unsafe_allow_html=True,
+    )
