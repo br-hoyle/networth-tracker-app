@@ -33,12 +33,10 @@ def balances_spreadsheet(conn: GSheetsConnection):
                 key=row["cat"],
                 css_styles="""
                     {
-                        background-color: #ecebe3;
+                        background-color: #e2d7cb;
                         padding: 1rem 1rem 2rem 1rem;  /* top right bottom left */
                         border-radius: 0.5rem;
-                        border-width: 1px;
-                        border-style: solid;
-                        border-color: #3d3a2a;
+                        border-width: 0px;
                     }
                 """,
             ):

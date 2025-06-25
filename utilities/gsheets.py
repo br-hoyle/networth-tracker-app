@@ -262,6 +262,16 @@ def delete_balance_records(conn: GSheetsConnection):
     )
 
 
+def add_transaction_records(conn: GSheetsConnection):
+    # Create a button to open the URL
+    st.link_button(
+        label="Add Transactions",
+        url=st.secrets["connections"]["gsheets"]["spreadsheet"],
+        type="primary",
+        use_container_width=True,
+    )
+
+
 def edit_transaction_records(conn: GSheetsConnection):
     # Create a button to open the URL
     st.link_button(
@@ -325,7 +335,7 @@ def update_income(conn: GSheetsConnection):
     Allows inline editing and saving back to Google Sheets.
     """
 
-    @st.dialog("Income Management")
+    @st.dialog("Income Management", width="large")
     def income_editor():
 
         # Load data from the 'income' worksheet
@@ -340,7 +350,19 @@ def update_income(conn: GSheetsConnection):
 
         # Show editable data editor
         edited_df = st.data_editor(
-            income_df, num_rows="dynamic", use_container_width=True
+            income_df,
+            num_rows="dynamic",
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "indivivdual": st.column_config.TextColumn("Individual"),
+                "company": st.column_config.TextColumn("Company"),
+                "income": st.column_config.NumberColumn(
+                    "Annual Income", format="dollar"
+                ),
+                "effective_start_date": st.column_config.TextColumn("From Date"),
+                "effective_end_date": st.column_config.TextColumn("To Date"),
+            },
         )
 
         # Save button

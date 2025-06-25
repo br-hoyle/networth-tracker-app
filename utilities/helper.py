@@ -72,3 +72,22 @@ def get_config_value(dot_path: str, config_path: str = ".streamlit/config.toml")
             return None  # Key not found, exit early
 
     return current
+
+
+def render_footer():
+    st.markdown(
+        """
+    <hr style="margin-top: 3rem;" />
+    <div style='text-align: center; padding: 1rem; color: gray; font-size: 1rem;'>
+        Built with 
+        <img src="https://image.pngaaa.com/798/5084798-middle.png" style="height: 1em; vertical-align: middle;" alt="Streamlit logo"> 
+        <a href="https://streamlit.io/" target="_blank" style="color: gray; text-decoration: none;">Streamlit</a>
+        and 
+        <img src="https://upload.wikimedia.org/wikipedia/commons/3/30/Google_Sheets_logo_%282014-2020%29.svg" style="height: 1em; vertical-align: middle;" alt="Google Sheets logo">
+        Google Sheets
+        <br />
+        © 2025 Benjamin Hoyle
+    </div>
+            """,
+        unsafe_allow_html=True,
+    )

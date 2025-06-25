@@ -38,13 +38,7 @@ def show_app_sidebar():
         # Transactions
         st.markdown("##### Transaction")
 
-        if st.button(
-            type="primary",
-            use_container_width=True,
-            label="Add Transactions",
-            key="add_transaction_button_control",
-        ):
-            st.write("Add transactions")
+        add_transaction_records(conn=conn)
 
         transaction_columns = st.columns(2)
         with transaction_columns[0]:
