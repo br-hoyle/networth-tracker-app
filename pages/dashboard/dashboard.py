@@ -16,6 +16,8 @@ from pages.dashboard.components.investments_to_assets import investments_to_asse
 from pages.dashboard.components.retirement_margin import retirement_margin_tile
 from pages.dashboard.components.balance_by_group import balance_by_group_tile
 
+import numpy as np
+
 # ----------------- HEADER ----------------- #
 st.set_page_config(layout="wide", page_title="Product Dashboard")
 
@@ -75,7 +77,6 @@ elif view_type == "Spreadsheet":
 
     balances_spreadsheet(conn=conn)
 
-import numpy as np
 
 with stylable_container(
     key="table_tile",
@@ -89,13 +90,40 @@ with stylable_container(
             }
         """,
 ):
+    columns_ = st.columns([8, 2])
+    with columns_[0]:
+        st.markdown("### Recent Balance Changes")
+        st.write(
+            "Display recent balance trends by institution and category. Use the slider to adjust how many recent entries are included. \n"
+        )
+    with columns_[1]:
+        with stylable_container(
+            key="slider_tile",
+            css_styles="""
+                    {
+                background-color: #ecebe3;
+                padding: 1rem 1rem 2rem 1rem;
+                border-radius: 0.5rem;
+                border-width: 0px;
+                border-style: solid;
+                }
+                """,
+        ):
+            user_selected = st.slider(
+                label="Number of Previous Entries to Show",
+                min_value=3,
+                max_value=10,
+                value=6,
+            )
+    st.markdown("<hr style='border: 1px solid black;' />", unsafe_allow_html=True)
+
     # Load and preprocess
     df = conn.read(worksheet="balances")
     df["full_date"] = pd.to_datetime(df["full_date"])
     df = df.sort_values("full_date")
 
     # Filter to last 6 unique dates
-    last_n_dates = df["full_date"].drop_duplicates().sort_values().iloc[-6:]
+    last_n_dates = df["full_date"].drop_duplicates().sort_values().iloc[-user_selected:]
     df_filtered = df[df["full_date"].isin(last_n_dates)]
 
     # Pivot by category and institution
@@ -141,6 +169,7 @@ with stylable_container(
 
     # Build summary tables by category
     tables = {}
+
     for category in final_df["category"].unique():
         df_cat = final_df[final_df["category"] == category].copy()
 
@@ -199,19 +228,26 @@ with stylable_container(
 
         def style_table(df):
             style_df = pd.DataFrame("", index=df.index, columns=df.columns)
+
             for i in df.index:
-                style_df.at[i, "Last Change"] = highlight_change(
-                    df.loc[i], "Last Change"
-                )
-                style_df.at[i, "Change"] = highlight_change(df.loc[i], "Change")
+                is_total_row = df.loc[i, "institution_name"] == "Total"
+
+                for col in df.columns:
+                    style = ""
+
+                    if is_total_row:
+                        style += f"; background-color: {get_config_value('theme.ColorPalette.secondaryBackgroundColor')}; font-weight: bold;"
+
+                    if col in ["Last Change", "Change"]:
+                        style = highlight_change(df.loc[i], col)
+
+                    style_df.at[i, col] = style.strip("; ")
+
             return style_df
 
         df_styled = table.style.apply(style_table, axis=None)
 
         st.markdown(f"##### {category}")
-
-        # Then style and display
-        df_styled = table.style.apply(style_table, axis=None)
 
         st.dataframe(
             df_styled,
@@ -222,7 +258,7 @@ with stylable_container(
                 "institution_name": st.column_config.TextColumn(
                     "Institution", width="medium"
                 ),
-                "Balance History": st.column_config.LineChartColumn(
+                "Balance History": st.column_config.AreaChartColumn(
                     "Balance Trend", y_min=0
                 ),
                 "Last Change": st.column_config.NumberColumn(

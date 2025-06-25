@@ -59,7 +59,7 @@ def balance_by_group_tile(conn: GSheetsConnection):
         # --- Controls ---
         cols_top = st.columns([8, 1.25, 1.25])
         with cols_top[0]:
-            st.markdown("#### Balance by Group")
+            st.markdown("### Balance by Group")
 
         with cols_top[1]:
             selected_group = st.selectbox(

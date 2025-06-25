@@ -53,7 +53,7 @@ def networth_tile(conn: GSheetsConnection):
         # Right-aligned metric
         col1, col2 = st.columns([8, 2])
         with col1:
-            st.markdown("#### Net Worth")
+            st.markdown("### Net Worth")
             st.metric(
                 label="Net Worth",
                 label_visibility="collapsed",
