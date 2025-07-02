@@ -302,8 +302,15 @@ def update_accounts(conn: GSheetsConnection):
     def accounts_editor():
 
         # Load data from the 'accounts' worksheet
-        accounts_dfr = conn.read(worksheet="accounts")
-        accounts_df = accounts_dfr.set_index("account_id")
+        accounts_df = conn.read(worksheet="accounts")
+        accounts_df = accounts_df.sort_values(
+            by=[
+                "category",
+                "balance_type",
+                "institution_name",
+                "account_type",
+            ]
+        ).reset_index(drop=True)
 
         # Ensure DataFrame is not empty
         if accounts_df.empty:
@@ -318,6 +325,15 @@ def update_accounts(conn: GSheetsConnection):
             num_rows="dynamic",
             use_container_width=True,
             hide_index=True,
+            column_config={
+                "balance_type": st.column_config.TextColumn("Class", width="small"),
+                "institution_name": st.column_config.TextColumn("Institution"),
+                "category": st.column_config.TextColumn("Category"),
+                "account_type": st.column_config.TextColumn("Type"),
+                "account_name": st.column_config.TextColumn("Name"),
+                "effective_start_date": st.column_config.TextColumn("Opened Date"),
+                "effective_end_date": st.column_config.TextColumn("Closed Date"),
+            },
         )
 
         # Save button: updates the worksheet
@@ -339,7 +355,7 @@ def update_income(conn: GSheetsConnection):
     def income_editor():
 
         # Load data from the 'income' worksheet
-        income_df = conn.read(worksheet="income")
+        income_df = conn.read(worksheet="income").reset_index(drop=True)
 
         # If sheet is empty, initialize with example structure
         if income_df.empty:
@@ -355,7 +371,7 @@ def update_income(conn: GSheetsConnection):
             use_container_width=True,
             hide_index=True,
             column_config={
-                "indivivdual": st.column_config.TextColumn("Individual"),
+                "individual": st.column_config.TextColumn("Individual"),
                 "company": st.column_config.TextColumn("Company"),
                 "income": st.column_config.NumberColumn(
                     "Annual Income", format="dollar"

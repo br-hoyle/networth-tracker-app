@@ -218,7 +218,7 @@ def balance_by_group_tile(conn: GSheetsConnection):
                 barmode="stack",
                 height=350,
                 template="simple_white",
-                margin=dict(l=0, r=0, t=30, b=30),
+                margin=dict(l=0, r=50, t=0, b=0),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
                 bargap=0.1,
