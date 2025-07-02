@@ -302,8 +302,8 @@ def update_accounts(conn: GSheetsConnection):
     def accounts_editor():
 
         # Load data from the 'accounts' worksheet
-        accounts_df = conn.read(worksheet="accounts")
-        accounts_df.set_index("account_id", inplace=True)
+        accounts_dfr = conn.read(worksheet="accounts")
+        accounts_df = accounts_dfr.set_index("account_id")
 
         # Ensure DataFrame is not empty
         if accounts_df.empty:

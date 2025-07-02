@@ -77,6 +77,7 @@ if view_type == "Dashboard":
 
     # BALANCE BY CATEGORY OVER TIME
     balance_by_institution_over_time_tile(conn=conn)
+    st.write("hello")
 
 
 ## ---------- BALANCES SPREADSHEET ---------- ##
