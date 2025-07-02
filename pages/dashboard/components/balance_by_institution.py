@@ -22,12 +22,16 @@ def generate_balance_change_tables(conn, num_entries=6):
     df_filtered = df[df["full_date"].isin(recent_dates)]
 
     # Pivot balances
-    pivot_df = df_filtered.pivot_table(
-        index=["category", "institution_name"],
-        columns="full_date",
-        values="balance",
-        aggfunc="sum",
-    ).sort_index(axis=1)
+    pivot_df = (
+        df_filtered.pivot_table(
+            index=["category", "institution_name"],
+            columns="full_date",
+            values="balance",
+            aggfunc="sum",
+        )
+        .sort_index(axis=1)
+        .fillna(0)
+    )
 
     # Format column names
     pivot_df.columns = [

@@ -26,6 +26,7 @@ def balance_by_group_tile(conn: GSheetsConnection):
         "Banking": "#8a8175",  # soft brownish-gray
         "Checking": "#c7c1b4",  # desaturated tan/gray
         "Savings": "#b8b2a6",
+        "Credit": "#f6cc98",
     }
 
     # --- UI Container ---
@@ -86,10 +87,10 @@ def balance_by_group_tile(conn: GSheetsConnection):
         group_col = "category" if selected_group == "Category" else "account_group"
 
         # --- Chart Columns ---
-        cols_chart = st.columns([4, 6])
+        cols_chart = st.columns([4, 0.5, 6])
 
         # --- Time Series Chart ---
-        with cols_chart[1]:
+        with cols_chart[2]:
             fig = go.Figure()
             for group_value in chart_df[group_col].unique():
                 group_data = chart_df[chart_df[group_col] == group_value]
@@ -157,6 +158,21 @@ def balance_by_group_tile(conn: GSheetsConnection):
                 fig, use_container_width=True, config={"displayModeBar": False}
             )
 
+        with cols_chart[1]:
+            st.markdown(
+                f"""
+    <style>
+        .divider-vertical-line {{
+            border-left: 2px solid #9f8770;
+            height: 320px;
+            margin: auto;
+        }}
+    </style>
+    <div class="divider-vertical-line"></div>
+    """,
+                unsafe_allow_html=True,
+            )
+
         # --- Sunburst Chart ---
         with cols_chart[0]:
             latest_date = df["full_date"].max()
@@ -168,34 +184,69 @@ def balance_by_group_tile(conn: GSheetsConnection):
                 .reset_index()
             )
 
-            # Plot sunburst with only leaf nodes (no manual parent rows)
-            fig = px.sunburst(
-                sunburst_data,
-                path=["category", "account_group"],
-                values="total_balance",
-                color="category",
-                color_discrete_map=color_map,
-            )
+            traces = []
+            for account in sunburst_data["account_group"].unique():
+                sub_df = sunburst_data[sunburst_data["account_group"] == account]
+                group = sub_df["category"].iloc[0]
 
-            # Optional: text formatting tweaks
-            fig.update_traces(
-                textinfo="label+value",
-                marker=dict(line=dict(color="#ecebe3", width=0.5)),
-                hovertemplate="<b>Category:</b> %{root}<br>"
-                "<b>Label:</b> %{label}<br>"
-                "<b>Balance:</b> $%{value:,.0f}<extra></extra>",
-            )
+                traces.append(
+                    go.Bar(
+                        x=sub_df["category"],
+                        y=sub_df["total_balance"],
+                        name=account,
+                        # Grouping
+                        legendgroup=group,
+                        legendgrouptitle_text=(
+                            group
+                            if not any(t["legendgroup"] == group for t in traces)
+                            else None
+                        ),
+                        marker_color=color_map.get(account, None),
+                        text=[
+                            f"{account} <br> ${bal/1000:.1f}K"
+                            for bal in sub_df["total_balance"]
+                        ],
+                        cliponaxis=False,
+                    )
+                )
 
-            # Apply layout
+            # Step 3: Create the figure
+            fig = go.Figure(data=traces)
+
+            # Step 4: Layout
             fig.update_layout(
+                barmode="stack",
                 height=350,
                 template="simple_white",
-                margin=dict(l=0, r=0, t=20, b=20),
+                margin=dict(l=0, r=50, t=0, b=0),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
-                title="",
+                bargap=0.1,
+                bargroupgap=0.0,
+                showlegend=False,
+                yaxis=dict(
+                    tickformat="$,.0f",
+                    tickfont=dict(
+                        color=get_config_value("theme.ColorPalette.textColor")
+                    ),
+                    showgrid=False,
+                    showline=False,
+                    zeroline=True,
+                    zerolinewidth=0,
+                    fixedrange=True,
+                    constrain="domain",
+                ),
+                xaxis=dict(
+                    tickfont=dict(
+                        color=get_config_value("theme.ColorPalette.textColor")
+                    ),
+                    showgrid=False,
+                    showline=False,
+                    zeroline=False,
+                    zerolinewidth=0,
+                    fixedrange=False,
+                ),
             )
-
             st.plotly_chart(
                 fig, use_container_width=True, config={"displayModeBar": False}
             )

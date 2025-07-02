@@ -1,14 +1,14 @@
 import streamlit as st
-from utilities.auth import *
 from streamlit_gsheets import GSheetsConnection
 
 from utilities.sidebar import show_app_sidebar
-from utilities.helper import *
-from utilities.gsheets import *
-from utilities.calculations import *
+from utilities.gsheets import (
+    refresh_connection,
+    load_settings_to_session_state,
+    settings_assumptions,
+)
 
-from pages.dashboard.components.spreadsheet import *
-
+from pages.dashboard.components.spreadsheet import balances_spreadsheet
 from pages.dashboard.components.networth import networth_tile
 from pages.dashboard.components.target_networth import target_networth_tile
 from pages.dashboard.components.fire_networth import financial_independence_tile
