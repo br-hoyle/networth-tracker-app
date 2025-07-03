@@ -45,6 +45,40 @@ def check_balance_staleness(conn: GSheetsConnection):
         )
 
 
+def check_transactions_staleness(conn: GSheetsConnection):
+    """Return banner indicating staleness of transaction data."""
+
+    # Query latest balance date from the records worksheet
+    result = conn.query(
+        "SELECT MAX(STRPTIME(full_date, '%m/%d/%Y')) AS max_date FROM transactions;"
+    )
+
+    max_full_date = result.iloc[0, 0]
+
+    if max_full_date is None:
+        st.error("No transaction records found. Please enter transaction data.")
+        return
+
+    # Convert to date for comparison
+    latest_date = pd.to_datetime(max_full_date).date()
+    today = datetime.today().date()
+    days_old = (today - latest_date).days
+
+    # Show appropriate banner
+    if days_old > 45:
+        st.error(
+            f"🚨 Last recorded transactions **{days_old} days ago** ({latest_date.strftime('%m/%d/%Y')}). Please update transaction records."
+        )
+    elif days_old > 30:
+        st.warning(
+            f"⚠️ Last recorded transactions **{days_old} days ago** ({latest_date.strftime('%m/%d/%Y')})."
+        )
+    else:
+        st.success(
+            f"✅ Last recorded transactions **{days_old} days ago** ({latest_date.strftime('%m/%d/%Y')})."
+        )
+
+
 def get_config_value(dot_path: str, config_path: str = ".streamlit/config.toml"):
     """
     Loads a TOML config file and retrieves a nested value based on a dot-separated path.
