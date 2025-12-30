@@ -355,14 +355,20 @@ def update_income(conn: GSheetsConnection):
     def income_editor():
 
         # Load data from the 'income' worksheet
-        income_df = conn.read(worksheet="income").reset_index(drop=True)
+        income_df = conn.read(worksheet="income")
 
-        # If sheet is empty, initialize with example structure
-        if income_df.empty:
-            st.warning("The 'income' worksheet is empty. Add rows below.")
-            income_df = pd.DataFrame(
-                columns=["income", "effective_start_date", "effective_end_date"]
-            )  # Customize as needed
+        # Convert to datetime objects for accurate chronological sorting
+        income_df["_sort_date"] = pd.to_datetime(
+            income_df["effective_start_date"], errors="coerce"
+        )
+
+        # Sort by Individual and Date
+        income_df = income_df.sort_values(
+            by=["individual", "_sort_date"], ascending=[True, False]
+        ).reset_index(drop=True)
+
+        # Clean up: Drop the temporary sorting column so it doesn't show in the UI
+        income_df = income_df.drop(columns=["_sort_date"])
 
         # Show editable data editor
         edited_df = st.data_editor(
@@ -370,11 +376,18 @@ def update_income(conn: GSheetsConnection):
             num_rows="dynamic",
             use_container_width=True,
             hide_index=True,
+            column_order=[
+                "individual",
+                "company",
+                "income",
+                "effective_start_date",
+                "effective_end_date",
+            ],
             column_config={
                 "individual": st.column_config.TextColumn("Individual"),
                 "company": st.column_config.TextColumn("Company"),
                 "income": st.column_config.NumberColumn(
-                    "Annual Income", format="dollar"
+                    "Annual Income", format="$%.2f"
                 ),
                 "effective_start_date": st.column_config.TextColumn("From Date"),
                 "effective_end_date": st.column_config.TextColumn("To Date"),
@@ -383,8 +396,12 @@ def update_income(conn: GSheetsConnection):
 
         # Save button
         if st.button("Save"):
-            conn.update(worksheet="income", data=edited_df)
+            conn.update(
+                worksheet="income",
+                data=edited_df.drop(columns=["_sort_date"]),
+            )
             st.success("Income data updated successfully.")
+            conn.reset()
 
     # Open the dialog
     income_editor()

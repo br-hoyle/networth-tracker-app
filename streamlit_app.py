@@ -7,9 +7,9 @@ no_auth_pages = {"": [st.Page("pages/home/home.py", title="Home")]}
 # Authentication Pages
 auth_pages = {
     "Product": [
-        st.Page("pages/dashboard/dashboard.py", title="Networth Dashboard"),
+        st.Page("pages/dashboard/networth_dashboard.py", title="Networth Dashboard"),
         st.Page(
-            "pages/income_and_expenses/income_and_expenses.py",
+            "pages/income_and_expenses/income_and_expenses_dashboard.py",
             title="Income & Expenses",
         ),
     ],

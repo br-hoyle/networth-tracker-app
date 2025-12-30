@@ -56,6 +56,7 @@ def balances_spreadsheet(conn: GSheetsConnection):
             "account_name",
         ],
     ).fillna(0)
+    balances_df_pivot = balances_df_pivot.sort_index(axis=1)
 
     # Add the 'Total' column by summing across all existing columns
     total_col = (

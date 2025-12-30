@@ -15,6 +15,7 @@ def show_app_sidebar():
             key="nav",
             selection_mode="single",
             default=["Dashboard"],
+            width="stretch",
         )
 
         # Balances
