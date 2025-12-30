@@ -109,18 +109,18 @@ def transactions_spreadsheet(conn: GSheetsConnection):
         groups_to_show = len(average_df)
 
         # Show top 8 average groups as metrics
-        top_cols = st.columns(min(groups_to_show, 8))
+        top_cols = st.columns(min(groups_to_show, 6))
         for col, (_, row) in zip(top_cols, average_df.iterrows()):
             with col:
                 style_and_render_metric(
                     row["group"], row["amount"], key_suffix=row["group"]
                 )
 
-        # Show remaining groups in an expander if more than 8
-        if groups_to_show > 8:
+        # Show remaining groups in an expander if more than 6
+        if groups_to_show > 6:
             with st.expander("Click to Show More Expense Groups"):
-                extra_cols = st.columns(max(4, groups_to_show - 8))
-                for col, (_, row) in zip(extra_cols, average_df.iloc[8:].iterrows()):
+                extra_cols = st.columns(max(4, groups_to_show - 6))
+                for col, (_, row) in zip(extra_cols, average_df.iloc[6:].iterrows()):
                     with col:
                         style_and_render_metric(
                             row["group"], row["amount"], key_suffix=row["group"]
