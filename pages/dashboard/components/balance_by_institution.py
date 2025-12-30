@@ -163,29 +163,17 @@ def balance_by_institution_over_time_tile(conn):
         columns_ = st.columns([8, 2])
         with columns_[0]:
             st.markdown("### Recent Balance Changes")
-            st.write(
+            st.caption(
                 "Display recent balance trends by institution and category. "
                 "Use the slider to adjust how many recent entries are included."
             )
         with columns_[1]:
-            with stylable_container(
-                key="slider_tile",
-                css_styles="""
-                    {
-                        background-color: #ecebe3;
-                        padding: 1rem 1rem 2rem 1rem;
-                        border-radius: 0.5rem;
-                        border-width: 0px;
-                        border-style: solid;
-                    }
-                """,
-            ):
-                selected_number_of_periods = st.slider(
-                    label="Number of Previous Entries to Show",
-                    min_value=3,
-                    max_value=10,
-                    value=8,
-                )
+            selected_number_of_periods = st.slider(
+                label="Number of Previous Entries to Show",
+                min_value=3,
+                max_value=10,
+                value=8,
+            )
 
         # === Pipeline Execution ===
         raw_tables = generate_balance_change_tables(
